@@ -676,5 +676,59 @@ target_link_libraries(unittest_subprocess global)
 add_executable(unittest_pageset EXCLUDE_FROM_ALL test_pageset.cc)
 add_ceph_unittest(unittest_pageset ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/unittest_pageset)
 
+# unittest_librgw_file (nfs-like RGW interface)
+add_executable(unittest_librgw_file EXCLUDE_FROM_ALL
+  librgw_file.cc
+  )
+add_ceph_unittest(unittest_librgw_file ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/unittest_librgw_file)
+target_link_libraries(unittest_librgw_file 
+  rgw
+  librados
+  ${EXTRALIBS}
+  )
+
+# unittest_librgw_file_cd (just the rgw_file create-delete bucket ops)
+add_executable(unittest_librgw_file_cd EXCLUDE_FROM_ALL
+  librgw_file_cd.cc
+  )
+add_ceph_unittest(unittest_librgw_file_cd ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/unittest_librgw_file_cd)
+target_link_libraries(unittest_librgw_file_cd 
+  rgw
+  librados
+  ${EXTRALIBS}
+  )
+
+# unittest_librgw_file_gp (just the rgw_file get-put bucket ops)
+add_executable(unittest_librgw_file_gp EXCLUDE_FROM_ALL
+  librgw_file_gp.cc
+  )
+add_ceph_unittest(unittest_librgw_file_gp ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/unittest_librgw_file_gp)
+target_link_libraries(unittest_librgw_file_gp 
+  rgw
+  librados
+  ${EXTRALIBS}
+  )
+
+# unittest_librgw_file_nfsns (nfs namespace tests)
+add_executable(unittest_librgw_file_nfsns EXCLUDE_FROM_ALL
+  librgw_file_nfsns.cc
+  )
+add_ceph_unittest(unittest_librgw_file_nfsns ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/unittest_librgw_file_nfsns)
+target_link_libraries(unittest_librgw_file_nfsns 
+  rgw
+  librados
+  ${EXTRALIBS}
+  )
+
+# unittest_librgw_file_aw (nfs write transaction [atomic write] tests)
+add_executable(unittest_librgw_file_aw EXCLUDE_FROM_ALL
+  librgw_file_aw.cc
+  )
+add_ceph_unittest(unittest_librgw_file_aw ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/unittest_librgw_file_aw)
+target_link_libraries(unittest_librgw_file_aw
+  rgw
+  librados
+  ${EXTRALIBS}
+  )
 #make check ends here
 
