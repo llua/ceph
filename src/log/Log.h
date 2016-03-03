@@ -36,8 +36,6 @@ class Log : private Thread
 
   std::string m_log_file;
   int m_fd;
-  uid_t m_uid;
-  gid_t m_gid;
 
   int m_syslog_log, m_syslog_crash;
   int m_stderr_log, m_stderr_crash;
@@ -67,7 +65,6 @@ public:
   void set_max_recent(int n);
   void set_log_file(std::string fn);
   void reopen_log_file();
-  void chown_log_file(uid_t uid, gid_t gid);
 
   void flush();
 

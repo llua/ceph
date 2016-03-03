@@ -22,7 +22,6 @@
 #include "common/safe_io.h"
 #include "common/signal.h"
 #include "common/version.h"
-#include "common/admin_socket.h"
 #include "global/global_context.h"
 #include "global/global_init.h"
 #include "global/pidfile.h"
@@ -107,6 +106,12 @@ void global_pre_init(std::vector < const char * > *alt_def_args,
   conf->parse_env(); // environment variables override
 
   conf->parse_argv(args); // argv override
+
+  // Expand metavariables. Invoke configuration observers.
+  conf->apply_changes(NULL);
+
+  // Now we're ready to complain about config file parse errors
+  complain_about_parse_errors(cct, &parse_errors);
 }
 
 void global_init(std::vector < const char * > *alt_def_args,
@@ -143,7 +148,6 @@ void global_init(std::vector < const char * > *alt_def_args,
   }
 
   // drop privileges?
-  ostringstream priv_ss;
   if (g_conf->setgroup.length() ||
       g_conf->setuser.length()) {
     uid_t uid = 0;  // zero means no change; we can only drop privs here.
@@ -199,33 +203,26 @@ void global_init(std::vector < const char * > *alt_def_args,
 	uid = 0;
 	gid = 0;
       } else {
-	priv_ss << "setuser_match_path "
-		<< g_conf->setuser_match_path << " owned by "
-		<< st.st_uid << ":" << st.st_gid << ". ";
+	dout(10) << "setuser_match_path "
+		 << g_conf->setuser_match_path << " owned by "
+		 << st.st_uid << ":" << st.st_gid << ", doing setuid/gid"
+		 << dendl;
       }
     }
-    g_ceph_context->set_uid_gid(uid, gid);
-    if ((flags & CINIT_FLAG_DEFER_DROP_PRIVILEGES) == 0) {
-      if (setgid(gid) != 0) {
-	int r = errno;
-	cerr << "unable to setgid " << gid << ": " << cpp_strerror(r)
-	     << std::endl;
-	exit(1);
-      }
-      if (setuid(uid) != 0) {
-	int r = errno;
-	cerr << "unable to setuid " << uid << ": " << cpp_strerror(r)
-	     << std::endl;
-	exit(1);
-      }
-      priv_ss << "set uid:gid to " << uid << ":" << gid;
-    } else {
-      priv_ss << "deferred set uid:gid to " << uid << ":" << gid;
+    if (setgid(gid) != 0) {
+      int r = errno;
+      cerr << "unable to setgid " << gid << ": " << cpp_strerror(r)
+	   << std::endl;
+      exit(1);
     }
+    if (setuid(uid) != 0) {
+      int r = errno;
+      cerr << "unable to setuid " << uid << ": " << cpp_strerror(r)
+	   << std::endl;
+      exit(1);
+    }
+    dout(0) << "set uid:gid to " << uid << ":" << gid << dendl;
   }
-
-  // Expand metavariables. Invoke configuration observers. Open log file.
-  g_conf->apply_changes(NULL);
 
   if (g_conf->run_dir.length() &&
       code_env == CODE_ENVIRONMENT_DAEMON &&
@@ -242,23 +239,6 @@ void global_init(std::vector < const char * > *alt_def_args,
   // call all observers now.  this has the side-effect of configuring
   // and opening the log file immediately.
   g_conf->call_all_observers();
-
-  if (priv_ss.str().length()) {
-    dout(0) << priv_ss.str() << dendl;
-
-    if (g_ceph_context->get_set_uid() || g_ceph_context->get_set_gid()) {
-      // fix ownership on log, asok files.  this is sadly a bit of a hack :(
-      g_ceph_context->_log->chown_log_file(
-	g_ceph_context->get_set_uid(),
-	g_ceph_context->get_set_gid());
-      g_ceph_context->get_admin_socket()->chown(
-	g_ceph_context->get_set_uid(),
-	g_ceph_context->get_set_gid());
-    }
-  }
-
-  // Now we're ready to complain about config file parse errors
-  complain_about_parse_errors(cct, &parse_errors);
 
   // test leak checking
   if (g_conf->debug_deliberately_leak_memory) {

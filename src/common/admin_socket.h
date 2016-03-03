@@ -76,9 +76,7 @@ public:
   int unregister_command(std::string command);
 
   bool init(const std::string &path);
-
-  void chown(uid_t uid, gid_t gid);
-
+  
 private:
   AdminSocket(const AdminSocket& rhs);
   AdminSocket& operator=(const AdminSocket &rhs);
